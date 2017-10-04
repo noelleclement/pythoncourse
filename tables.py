@@ -121,10 +121,8 @@ if len(mistakes) > 0:
     inputMistakes = str(input('Do you want to know your mistakes? Y/N '))
     if inputMistakes == 'Y' or inputMistakes == 'y':
         for i in range (len(mistakes)):
-            print('')
-            print('Your answer: ', mistakes[i][0], mistakes[i][2])
-            print('Correct answer: ', mistakes[i][0], mistakes[i][1])
-            print('')
+            print('\nYour answer: ', mistakes[i][0], mistakes[i][2])
+            print('Correct answer: ', mistakes[i][0], mistakes[i][1], '\n')
     else:
         print('Thanks for using my application!')
 else:
