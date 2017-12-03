@@ -29,6 +29,8 @@ class Field():
     def draw(self):
         self.window.clear()
         self.label.draw()
+        self.window.flip ()                                 # Copy drawing buffer to window
+        self.window.set_visible(True)
 
 
 class Game():
