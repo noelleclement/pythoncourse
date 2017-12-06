@@ -1,7 +1,9 @@
 import pyglet
 from pyglet.window import key, FPSDisplay
+from pyglet.gl import *
 import numpy as np
 import time
+import gc 
 
 start_Window_width = 1200
 start_Window_height = 800
@@ -115,7 +117,7 @@ class Player_Ship (Sprite):
             pos_x = start_Window_width//2, # + self.anchor_x,                     
             pos_y = start_Window_height//6) # + self.anchor_y)
 
-        print(self.anchor_x)
+        #print(self.anchor_x)
 
     def predict (self):                                             # Let playership react on keys
         self.vel_y = 0
@@ -125,7 +127,6 @@ class Player_Ship (Sprite):
         elif self.game.keymap [pyglet.window.key.LEFT]:             # Left arrow pressed
             self.vel_x = -self.speed
 
-        # (this doesn't make a difference atm so why keep it in)
         elif not self.game.keymap [pyglet.window.key.RIGHT]:        # Right arrow released
             self.vel_x = 0
         elif not self.game.keymap [pyglet.window.key.LEFT]:         # Left arrow released
@@ -181,15 +182,16 @@ class Player_Laser (Sprite):
         
         Sprite.predict(self)
 
+      
     def interact (self):
-        pos_y_max = self.game.window.height + self.height + self.margin
+        pos_y_max =  self.game.window.height + self.height + self.margin
         #low_y_enemy_ship = item.pos_y-item.anchor_y
         #hig_y_enemy_ship = item.pos_y+item.anchor_y
         #lef_x_enemy_ship = self.game.enemy_ship.pos_x#-self.game.enemy_ship.anchor_x
         #rig_x_enemy_ship = self.game.enemy_ship.pos_x+self.game.enemy_ship.width
         
-
         '''
+        
         print('pos y enship: '+str(self.game.enemy_ship.pos_y))
         print(self.game.enemy_ship.anchor_y)
         print(self.game.enemy_ship.pos_x)
@@ -205,16 +207,16 @@ class Player_Laser (Sprite):
         print(self.game.player_ship.anchor_y)
         print(self.game.player_ship.pos_x)
         print(self.game.player_ship.anchor_x)
-        '''
+        
 
-        '''
+        
         if self.pos_y > low_y_enemy_ship and self.pos_y < hig_y_enemy_ship:
             print('y is geraakt op '+ str(self.pos_y) )
             if self.pos_x > lef_x_enemy_ship and self.pos_x < rig_x_enemy_ship:
             #self.game.attributes.remove()
                 print('x is geraaktttt op '+ str(self.pos_x))
-        '''
-        '''
+        
+        
         for item in self.game.attributes:
             if type(item) is Enemy_Ship:
                 if self.pos_y > (item.pos_y) and self.pos_y < (item.pos_y+item.height):
@@ -225,14 +227,15 @@ class Player_Laser (Sprite):
                         #time.sleep(0.5)
                         #print(len(self.game.attributes))
                         #del item
-         '''          
+        '''         
 
         if self.pos_y >= pos_y_max:
             #self.out_of_screen = True
             self.game.attributes.remove(self)
+            self.pygletSprite.batch = None
 
         #print(self.out_of_screen, self.pos_y)
-
+    
 
 class Enemy_Ship(Sprite):
     enemy_ship = pyglet.image.load('res/sprites/enemyShip_Sh01.png')
@@ -242,6 +245,7 @@ class Enemy_Ship(Sprite):
     
     speed = 100
     margin = 100
+    enemy_fire_rate = 0
 
     def __init__(self, game):
         Sprite.__init__(self, game, anim=self.enemy_ship_anim)
@@ -249,27 +253,134 @@ class Enemy_Ship(Sprite):
     def reset (self):
         Sprite.reset(
             self,
-            pos_x = np.random.randint (low=100, high=(start_Window_width-100)), #start_Window_width//2, - self.anchor_x,                     
-            pos_y = np.random.randint (low=(start_Window_height//2), high=(start_Window_height-100)) # - self.anchor_y)
+            pos_x = np.random.randint (low=100, high=(start_Window_width-self.width-self.margin)), #start_Window_width//2, - self.anchor_x,                     
+            pos_y = np.random.randint (low=(start_Window_height//2), high=(start_Window_height-self.margin)), # - self.anchor_y)
+            vel_x = self.speed,
+            vel_y = 0
         )
         #print(self.pos_x)
 
+    def predict (self):
+        #self.vel_y = 0
+        #self.vel_x = self.speed  
+        
+        Sprite.predict(self)
+
     def interact (self):
+        pos_x_max = self.game.window.width - self.margin - self.width
+        pos_x_min = self.margin
+
+        
+        if self.pos_x >= pos_x_max:
+            self.vel_x = -self.speed
+        elif self.pos_x <= pos_x_min:
+            self.vel_x = self.speed
         
         for item in self.game.attributes:
             if type(item) is Player_Laser:
-                if item.pos_y > (self.pos_y) and item.pos_y < (self.pos_y+self.height):
-                   print('y is geraakt op '+ str(self.pos_y) )
-                   if item.pos_x > (self.pos_x) and item.pos_x < (self.pos_x+self.width):
-                        print('x is geraaktttt op '+ str(self.pos_x))
-                        self.game.attributes.remove(self)
-                        self.game.attributes.remove(self)
-                        #del self
-                        #self.close()
+                if item.pos_y > (self.pos_y) and item.pos_y < (self.pos_y+self.height) and item.pos_x > (self.pos_x) and item.pos_x < (self.pos_x+self.width):
+                    #print('y is geraakt op '+ str(self.pos_y) )
+                    #print('x is geraaktttt op '+ str(self.pos_x))
+                    self.game.attributes.remove(item)
+                    item.pygletSprite.batch = None
+                    self.game.attributes.remove(self)
+                    self.game.enemy_ships.remove(self)
+                    self.pygletSprite.batch = None
+                    self.game.enemy_ships.append(Enemy_Ship(self.game))
+                    self.game.scoreboard.score_increment()
+                    
+                    #print('attributes:')
+                    #print(self.game.attributes)
+                    #print('enemy_ships:')
+                    #print(self.game.enemy_ships)
+
+
+        self.enemy_fire_rate -= self.game.deltaT
+        if self.enemy_fire_rate <= 0:
+            if np.random.randint(0, 10) >= 5:
+                self.game.attributes.append(Enemy_Laser(self.game, self))
+                self.enemy_fire_rate += 0.2
+
+                   
+ 
+class Enemy_Laser(Sprite):
+    el_image = 'enemy_laser.png'
+    speed = 400
+    margin = 100
+
+
+    def __init__ (self, game, enemy_ship):
+        self.enemy_ship = enemy_ship
+        #self.out_of_screen = False
+        Sprite.__init__(self, game, img = self.el_image)
+
+    def reset(self):
+        Sprite.reset(
+            self,
+            pos_x = self.enemy_ship.pos_x+self.enemy_ship.anchor_x, #+self.anchor_x,
+            pos_y = self.enemy_ship.pos_y)
+
+    def predict (self):
+        self.vel_y = -self.speed  
+        Sprite.predict(self)
+
+    def interact(self):
+        for item in self.game.attributes:
+            if type(item) is Player_Ship:
+                if self.pos_y < (item.pos_y+item.anchor_y) and self.pos_y >(item.pos_y-item.anchor_y) and self.pos_x > (item.pos_x-item.anchor_x) and self.pos_x < (item.pos_x+item.anchor_x):
+                    print('y is geraakt op '+ str(self.pos_y) )
+                    print('x is geraaktttt op '+ str(self.pos_x))
+                    self.game.attributes.remove(self)
+                    self.pygletSprite.batch = None
+                    self.game.scoreboard.lives_decrement()
+
+        if self.pos_y <= 80:
+                #self.out_of_screen = True
+                self.game.attributes.remove(self)
+                self.pygletSprite.batch = None
+
+                        
         
 
+class Scoreboard (Attribute):
 
+    def install (self): # Graphical representation of scoreboard are four labels and a separator line
 
+        def defineLabel (text, x, y):
+            return pyglet.text.Label (
+                text,
+                font_name = 'Arial', font_size = 24,
+                x = x, y = y,
+                anchor_x = 'center', anchor_y = 'center',
+                batch = self.game.batch
+            )
+    
+        defineLabel ('Player Lives', 1*start_Window_width//4, 60)    # Player name
+        defineLabel ('Player Score', 3*start_Window_width//4, 60)
+ 
+        self.playerLives_label = defineLabel ('000', 1*start_Window_width//4, 30)
+        self.playerScore_label = defineLabel ('000', 3*start_Window_width//4, 30)
+        
+ 
+        self.game.batch.add (2, GL_LINES, None, ('v2i', (0, start_Window_height, start_Window_width, start_Window_height))) # Line
+        
+    def score_increment (self):
+        self.playerScore += 25
+
+    def lives_decrement (self):
+        self.playerLives -= 1
+
+        if self.playerLives <=0:
+            self.game.game_over()
+    
+    def reset (self):
+        self.playerScore = 0
+        self.playerLives = 10
+        Attribute.reset (self)  # Only does a commit here
+        
+    def commit (self):          # Committing labels is adapting their texts
+        self.playerLives_label.text = '{}'.format (self.playerLives)
+        self.playerScore_label.text = '{}'.format (self.playerScore)  
 
 
 
@@ -319,9 +430,16 @@ class Game:
         #print (self.spaces[0].pygletSprite.x, self.spaces[0].pygletSprite.y)
         #print (self.spaces[1].pos_x, self.spaces[1].pos_y)
         #print (self.spaces[1].pygletSprite.x, self.spaces[1].pygletSprite.y)
+        
+        self.pause_text = pyglet.text.Label('press space to start', font_size=40 , italic=True, bold=True, x=start_Window_width//2 , y=start_Window_height//2-50, anchor_x='center', anchor_y='center', batch=self.batch)
+        self.instr_text = pyglet.text.Label('after that: <> for move, space for shoot', font_size=20, italic=True, x=start_Window_width//2, y=start_Window_height//2-100, anchor_x='center', anchor_y='center', batch=self.batch)
+        self.attributes.append(self.pause_text)
+        self.attributes.append(self.instr_text)
         self.player_ship = Player_Ship(self)
-        for i in range (2):
-            self.attributes.append(Enemy_Ship(self))
+        self.enemy_ships = []
+        for i in range (5):
+            self.enemy_ships.append(Enemy_Ship(self))
+        self.scoreboard = Scoreboard (self)
 
         self.window = pyglet.window.Window(1200, 800, visible=False, caption="Space Invaders", resizable=False)
 
@@ -348,7 +466,13 @@ class Game:
         
         
         if self.pause:                                      # If in paused state
+            
             if self.keymap [pyglet.window.key.SPACE]:       #   If SPACEBAR hit
+                self.attributes.remove(self.pause_text)
+                self.attributes.remove(self.instr_text)
+                self.pause_text.delete()
+                self.instr_text.delete()
+                #self.attributes.append(self.instr_text)
                 self.pause = False                          #       Start playing
                 time.sleep(0.5)
             #elif self.keymap [pyglet.window.key.ENTER]:     #   Else if ENTER hit
@@ -366,33 +490,27 @@ class Game:
             for attribute in self.attributes:               #   Commit them to pyglet for display
                 attribute.commit ()
 
-            '''
-            if self.player_ship.player_fire == True:
-                self.player_fire_rate -= self.deltaT
-                if self.player_fire_rate <= 0:
-                    self.attributes.append(Player_Laser(self, self.player_ship))
-                    self.player_fire_rate += 0.2
-            '''
-        '''
-            for lsr in self.attributes:
-                if lsr.out_of_screen == True:
-                    self.attributes.remove(lsr)
-        '''
+
         self.count = 0
         for item in self.attributes:
             if type(item) is Enemy_Ship:
+                #gc.collect()
+                #print(gc.get_referrers(item))
                 self.count += 1
         #print(self.player_ship.player_fire)
         #print(self.attributes.count(Enemy_Ship))
 
-        print(self.count)
-
-        
+        #print(self.count)  
 
     def draw (self):
         self.window.clear ()
         self.batch.draw ()      # All attributes added their graphical representation to the batch
-         
+    
+
+    def game_over(self):
+        self.pause = True
+        self.game_over_label = pyglet.text.Label('GAME OVER', font_size=60 , italic=True, bold=True, x=start_Window_width//2 , y=start_Window_height//2-50, anchor_x='center', anchor_y='center', batch=self.batch)
+
 
 game = Game()
 
@@ -404,11 +522,9 @@ game = Game()
 notes:
 to do:
 
-- enemy_ship laten verdwijnen wanneer geraakt (het lijkt in nog een andere lijst te staan naast attributes) (wordt 2x aangemaakt)
-    - kijken waarom enship 2x wordt aangemaakt
-    - uitproberen of als dat opgelost is of wel geremoved kan worden uit attributes
+- enemy_ships:
+    - nu verwijdert ie ook het ship dat er boven zit (laser raakt het nog)
 - explosies toevoegen (appenden en na tijdperiode weer removen uit attributen?)
-- enemy_ships laten bewegen
 - enemy_ships laten schieten
 
 - scoreboard / levens
@@ -419,6 +535,13 @@ to do:
 - add label if paused (press space to begin/continue)
 - spaces: kijken of het wel zo goed gaat, want 1) index doorgeven bij nieuwe? 2)als je iets uit lijst verwijdert, shuif index ook op?
 - 
+
+intro_text = pyglet.text.Label("press space to start", x=600 , y=450)
+intro_text.anchor_x = "center"
+intro_text.anchor_y = "center"
+intro_text.italic = True
+intro_text.bold = True
+intro_text.font_size = 40
 
 
 - uitzoeken hoe ik in player_ship window kan gebruiken (nu error dat ie niet herkent dat game een window attribute heeft) > nu maar gewoon pixels aangeven
