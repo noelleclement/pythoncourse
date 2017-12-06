@@ -6,6 +6,7 @@ def preload_image(image):
     img = pyglet.image.load('resources/sprites/'+image)
     return img
 
+  
 
 class GameWindow(pyglet.window.Window):
     def __init__(self, *args, **kwargs):

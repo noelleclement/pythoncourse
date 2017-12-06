@@ -8,6 +8,7 @@ import gc
 start_Window_width = 1200
 start_Window_height = 800
 
+
 class Attribute:
     def __init__(self, game):            
         self.game = game                                # Attribute knows game it's part of
@@ -323,8 +324,8 @@ class Enemy_Laser(Sprite):
         for item in self.game.attributes:
             if type(item) is Player_Ship:
                 if self.pos_y < (item.pos_y+item.anchor_y) and self.pos_y >(item.pos_y-item.anchor_y) and self.pos_x > (item.pos_x-item.anchor_x) and self.pos_x < (item.pos_x+item.anchor_x):
-                    print('y is geraakt op '+ str(self.pos_y) )
-                    print('x is geraaktttt op '+ str(self.pos_x))
+                    #print('y is geraakt op '+ str(self.pos_y) )
+                    #print('x is geraaktttt op '+ str(self.pos_x))
                     self.game.attributes.remove(self)
                     self.pygletSprite.batch = None
                     self.game.scoreboard.lives_decrement()
@@ -572,6 +573,7 @@ class Game:
         self.pause = True
         self.gameover_screen = GameOverScreen(self)
         self.scoreboard.playerLives +=10
+        self.scoreboard.playerScore = 0
 
         '''
         if self.keymap [pyglet.window.key.SPACE]:
@@ -604,9 +606,12 @@ to do:
 - spaces: kijken of het wel zo goed gaat, want 1) index doorgeven bij nieuwe? 2)als je iets uit lijst verwijdert, shuif index ook op?
 - resizable window (zie onderaan)
 - geluiden toevoegen
-
-
 - uitzoeken hoe ik in player_ship window kan gebruiken (nu error dat ie niet herkent dat game een window attribute heeft) > nu maar gewoon pixels aangeven
+
+
+feedback:
+- geen deltaT die aangepast wordt ivm processor
+- goed dat uitbreidbaar 
 '''
 
 
