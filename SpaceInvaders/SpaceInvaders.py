@@ -260,11 +260,7 @@ class Enemy_Ship(Sprite):
         )
         #print(self.pos_x)
 
-    def predict (self):
-        #self.vel_y = 0
-        #self.vel_x = self.speed  
-        
-        Sprite.predict(self)
+
 
     def interact (self):
         pos_x_max = self.game.window.width - self.margin - self.width
@@ -311,13 +307,12 @@ class Enemy_Laser(Sprite):
 
     def __init__ (self, game, enemy_ship):
         self.enemy_ship = enemy_ship
-        #self.out_of_screen = False
         Sprite.__init__(self, game, img = self.el_image)
 
     def reset(self):
         Sprite.reset(
             self,
-            pos_x = self.enemy_ship.pos_x+self.enemy_ship.anchor_x, #+self.anchor_x,
+            pos_x = self.enemy_ship.pos_x+self.enemy_ship.anchor_x, 
             pos_y = self.enemy_ship.pos_y)
 
     def predict (self):
@@ -344,7 +339,7 @@ class Enemy_Laser(Sprite):
 
 class Scoreboard (Attribute):
 
-    def install (self): # Graphical representation of scoreboard are four labels and a separator line
+    def install (self): 
 
         def defineLabel (text, x, y):
             return pyglet.text.Label (
@@ -362,7 +357,7 @@ class Scoreboard (Attribute):
         self.playerScore_label = defineLabel ('000', 3*start_Window_width//4, 30)
         
  
-        self.game.batch.add (2, GL_LINES, None, ('v2i', (0, start_Window_height, start_Window_width, start_Window_height))) # Line
+        #self.game.batch.add (2, GL_LINES, None, ('v2i', (0, start_Window_height, start_Window_width, start_Window_height))) # Line
         
     def score_increment (self):
         self.playerScore += 25
@@ -381,6 +376,65 @@ class Scoreboard (Attribute):
     def commit (self):          # Committing labels is adapting their texts
         self.playerLives_label.text = '{}'.format (self.playerLives)
         self.playerScore_label.text = '{}'.format (self.playerScore)  
+
+class StartScreen (Attribute):
+    
+    def install (self):
+        
+        self.pause_text = pyglet.text.Label(
+            text='press space to start', 
+            font_size=40 , 
+            italic=True, 
+            bold=True, 
+            x=start_Window_width//2 , 
+            y=start_Window_height//2-50, 
+            anchor_x='center', 
+            anchor_y='center', 
+            batch=self.game.batch)
+        self.instr_text = pyglet.text.Label(
+            text='after that: <- -> for moving, space for shooting', 
+            font_size=20, 
+            italic=True, 
+            x=start_Window_width//2, 
+            y=start_Window_height//2-100, 
+            anchor_x='center', 
+            anchor_y='center', 
+            batch=self.game.batch)
+
+    def reset (self):
+        if not self.game.pause:
+            self.gameover_screen.pause_text.delete()
+            self.gameover_screen.instr_text.delete()
+
+class GameOverScreen (Attribute):
+
+    def install (self):
+        self.game_over_label = pyglet.text.Label(
+            text='GAME OVER', 
+            font_size=60 , 
+            italic=True, 
+            bold=True, 
+            x=start_Window_width//2 , 
+            y=start_Window_height//2-50, 
+            anchor_x='center', 
+            anchor_y='center', 
+            batch=self.game.batch)
+        self.play_again_label = pyglet.text.Label(
+            text='wanna play again? press space for reset', 
+            font_size=20, 
+            italic=True, 
+            x=start_Window_width//2, 
+            y=start_Window_height//2-100, 
+            anchor_x='center', 
+            anchor_y='center', 
+            batch=self.game.batch)
+
+    def reset (self):
+        if not self.game.gameover:
+            self.gameover_screen.game_over_label.delete()
+            self.gameover_screen.play_again_label.delete()
+
+
 
 
 
@@ -421,6 +475,7 @@ class Game:
 
         self.deltaT = 0
         self.pause = True
+        self.gameover = False
         self.player_fire_rate = 0
 
         self.attributes = []
@@ -431,10 +486,9 @@ class Game:
         #print (self.spaces[1].pos_x, self.spaces[1].pos_y)
         #print (self.spaces[1].pygletSprite.x, self.spaces[1].pygletSprite.y)
         
-        self.pause_text = pyglet.text.Label('press space to start', font_size=40 , italic=True, bold=True, x=start_Window_width//2 , y=start_Window_height//2-50, anchor_x='center', anchor_y='center', batch=self.batch)
-        self.instr_text = pyglet.text.Label('after that: <> for move, space for shoot', font_size=20, italic=True, x=start_Window_width//2, y=start_Window_height//2-100, anchor_x='center', anchor_y='center', batch=self.batch)
-        self.attributes.append(self.pause_text)
-        self.attributes.append(self.instr_text)
+        self.start_screen = StartScreen(self)
+        #self.gameover_screen = GameOverScreen(self)
+
         self.player_ship = Player_Ship(self)
         self.enemy_ships = []
         for i in range (5):
@@ -465,21 +519,27 @@ class Game:
         self.deltaT = deltaT                                # Actual deltaT may vary, depending on processor load
         
         
-        if self.pause:                                      # If in paused state
-            
+        if self.pause and not self.gameover:  
+            self.attributes.append(self.start_screen)                                    # If in paused state
             if self.keymap [pyglet.window.key.SPACE]:       #   If SPACEBAR hit
-                self.attributes.remove(self.pause_text)
-                self.attributes.remove(self.instr_text)
-                self.pause_text.delete()
-                self.instr_text.delete()
-                #self.attributes.append(self.instr_text)
-                self.pause = False                          #       Start playing
+                self.start_screen.pause_text.delete()
+                self.start_screen.instr_text.delete()
+                self.pause = False          
+                #self.attributes.reset()                #       Start playing
                 time.sleep(0.5)
             #elif self.keymap [pyglet.window.key.ENTER]:     #   Else if ENTER hit
             #   self.scoreboard.reset ()                    #       Reset score
             elif self.keymap [pyglet.window.key.ESCAPE]:    #   Else if ESC hit
                 self.exit ()                                #       End game
-             
+        elif self.pause and self.gameover:
+            if self.keymap [pyglet.window.key.SPACE]:
+                self.gameover=False
+                self.gameover_screen.game_over_label.delete()
+                self.gameover_screen.play_again_label.delete()
+                #self.attributes.reset()
+
+            
+
         else:                                               # Else, so if in active state
             for attribute in self.attributes:               #   Compute predicted values
                 attribute.predict ()
@@ -508,8 +568,22 @@ class Game:
     
 
     def game_over(self):
+        self.gameover = True
         self.pause = True
-        self.game_over_label = pyglet.text.Label('GAME OVER', font_size=60 , italic=True, bold=True, x=start_Window_width//2 , y=start_Window_height//2-50, anchor_x='center', anchor_y='center', batch=self.batch)
+        self.gameover_screen = GameOverScreen(self)
+        self.scoreboard.playerLives +=10
+
+        '''
+        if self.keymap [pyglet.window.key.SPACE]:
+            #self.attributes.delete(self.gameover_screen)
+            self.gameover_screen.game_over_label.delete()
+            self.gameover_screen.play_again_label.delete()
+            self.attributes.reset()
+        '''
+        #print(self.attributes)
+        #self.attributes.reset()
+        #self.update()
+
 
 
 game = Game()
@@ -524,24 +598,12 @@ to do:
 
 - enemy_ships:
     - nu verwijdert ie ook het ship dat er boven zit (laser raakt het nog)
+    - spacing beter
 - explosies toevoegen (appenden en na tijdperiode weer removen uit attributen?)
-- enemy_ships laten schieten
-
-- scoreboard / levens
-
-
-
-- nu herkent ie wel wanneer laser echt alleen in gebied van enship is, maar de enship heeft geen anchor lijkt het? geen error wanneer van anim spr_image anchor_x/y aanvragen
-- add label if paused (press space to begin/continue)
+- tekst (intro en game over) op voorgrond en eventueel alles erachter weg
 - spaces: kijken of het wel zo goed gaat, want 1) index doorgeven bij nieuwe? 2)als je iets uit lijst verwijdert, shuif index ook op?
-- 
-
-intro_text = pyglet.text.Label("press space to start", x=600 , y=450)
-intro_text.anchor_x = "center"
-intro_text.anchor_y = "center"
-intro_text.italic = True
-intro_text.bold = True
-intro_text.font_size = 40
+- resizable window (zie onderaan)
+- geluiden toevoegen
 
 
 - uitzoeken hoe ik in player_ship window kan gebruiken (nu error dat ie niet herkent dat game een window attribute heeft) > nu maar gewoon pixels aangeven
