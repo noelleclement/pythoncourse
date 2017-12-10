@@ -16,7 +16,7 @@ For my game I decided to create Space Invaders and because of this I worked on t
 Some things I'd prefer to have done better:
 - If I would have had time I would have wanted to add:
     - more types of enemies
-    - an actual real-time game (I didn't get the chance to not make it dependent on the given frame-rate, which make differ if computer is given more load)
+    - an actual real-time game (I didn't get the chance to not make it dependent on the given frame-rate, which may differ if computer is given more load)
     - more documenting/commenting 
     - some of the attributes of the game could have used a separate class, so I would have found it more organised if I created those (tried to start that with the start_screen and gameover_screen)
     
